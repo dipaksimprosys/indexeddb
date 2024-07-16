@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>IndexedDB</title>
+    <meta charset="UTF-8" />
+  </head>
+
+  <body>
+    <h1>%</h1>
+
+    <form id="user_detail">
+      <input required type="number" name="userid" placeholder="ID" />
+      <input required type="text" name="name" placeholder="Name" />
+      <input required type="email" name="email" placeholder="Email Address" />
+      <button type="submit" value="submit">Submit</button>
+    </form>
+
+    <span style="margin: 0 10px"></span>
+
+    <table border="1" width="80%">
+      <thead>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Email Address</th>
+        <th></th>
+      </thead>
+      <tbody id="user_data"></tbody>
+    </table>
+
+    <script src="./index.js"></script>
+  </body>
+</html>
