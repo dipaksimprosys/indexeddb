@@ -1,5 +1,5 @@
 class DatabaseHandler {
-  constructor() {}
+  constructor() {} 
 
   async openDatabase(databaseName) {
     return new Promise((resolve, reject) => {
