@@ -15,7 +15,7 @@ jobs:
 
       - name: Display built-in GitHub Actions variables
         run: |
-          echo "Test custom variable: $TEST_VARIABLE"
+          echo "Test custom variable: $TEST_NAME"
           echo "Test custom variable: ${{secrets.NEW1}}"
           echo "Test asd: ${{vars.TEST_NAME}}"
           echo "Repository: $GITHUB_REPOSITORY"
