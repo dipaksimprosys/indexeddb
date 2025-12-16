@@ -10,7 +10,7 @@ class DatabaseHandler {
         window.msIndexedDB ||
         window.shimIndexedDB;
       const request = indexedDB.open(databaseName);
-      request.onerror = function (e) {
+      request.onerror = function () {
         reject();
       };
       request.onsuccess = (event) => {
@@ -32,7 +32,7 @@ class DatabaseHandler {
   }
 
   async viewAllUsers() {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const userTransaction = this.db.transaction("users", "readwrite");
       const userObjectStore = userTransaction.objectStore("users");
       userObjectStore.getAll().onsuccess = function (event) {
@@ -56,7 +56,7 @@ class DatabaseHandler {
   }
 
   async removeItem(id) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const request = this.db
         .transaction("users", "readwrite")
         .objectStore("users")
@@ -103,7 +103,7 @@ const database = new DatabaseHandler();
 
 database
   .openDatabase("mydb")
-  .then((db) => database.viewAllUsers())
+  .then(() => database.viewAllUsers())
   .then((data) => {
     renderHtml(data);
   });
