@@ -94,7 +94,7 @@ function renderHtml(data, filterText = "") {
 const database = new DatabaseHandler();
 
 database
-  .openDatabase("mydb")
+  .openDatabase()
   .then(() => database.viewAllUsers())
   .then((data) => {
     renderHtml(data);
