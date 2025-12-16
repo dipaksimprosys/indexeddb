@@ -3,8 +3,8 @@ class DatabaseHandler {
     this.storageKey = "users_data";
   } 
 
-  async openDatabase(databaseName) {
-    return new Promise((resolve, reject) => {
+  async openDatabase() {
+    return new Promise((resolve) => {
       // Initialize localStorage if not exists
       if (!localStorage.getItem(this.storageKey)) {
         localStorage.setItem(this.storageKey, JSON.stringify([]));
@@ -14,7 +14,7 @@ class DatabaseHandler {
   }
 
   async viewAllUsers() {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const users = JSON.parse(localStorage.getItem(this.storageKey) || "[]");
       resolve(users);
     });
@@ -40,7 +40,7 @@ class DatabaseHandler {
   }
 
   async removeItem(id) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const users = JSON.parse(localStorage.getItem(this.storageKey) || "[]");
       const filteredUsers = users.filter(u => u.userid !== Number(id));
       localStorage.setItem(this.storageKey, JSON.stringify(filteredUsers));
@@ -95,7 +95,7 @@ const database = new DatabaseHandler();
 
 database
   .openDatabase("mydb")
-  .then((db) => database.viewAllUsers())
+  .then(() => database.viewAllUsers())
   .then((data) => {
     renderHtml(data);
   });
