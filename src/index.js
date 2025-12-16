@@ -1,69 +1,50 @@
 class DatabaseHandler {
-  constructor() {} 
+  constructor() {
+    this.storageKey = "users_data";
+  } 
 
   async openDatabase(databaseName) {
     return new Promise((resolve, reject) => {
-      const indexedDB =
-        window.indexedDB ||
-        window.mozIndexedDB ||
-        window.webkitIndexedDB ||
-        window.msIndexedDB ||
-        window.shimIndexedDB;
-      const request = indexedDB.open(databaseName);
-      request.onerror = function (e) {
-        reject();
-      };
-      request.onsuccess = (event) => {
-        this.db = event.target.result;
-        // this.userTransaction = this.db.transaction("users", "readwrite");
-        // this.userObjectStore = this.userTransaction.objectStore("users");
-
-        resolve(event.target.result);
-      };
-      request.onupgradeneeded = (event) => {
-        this.db = event.target.result;
-        const objectStore = this.db.createObjectStore("users", {
-          keyPath: "userid",
-        });
-        objectStore.createIndex("name", "name");
-        objectStore.createIndex("email", "email");
-      };
+      // Initialize localStorage if not exists
+      if (!localStorage.getItem(this.storageKey)) {
+        localStorage.setItem(this.storageKey, JSON.stringify([]));
+      }
+      resolve(true);
     });
   }
 
   async viewAllUsers() {
     return new Promise((resolve, reject) => {
-      const userTransaction = this.db.transaction("users", "readwrite");
-      const userObjectStore = userTransaction.objectStore("users");
-      userObjectStore.getAll().onsuccess = function (event) {
-        resolve(event.target.result);
-      };
+      const users = JSON.parse(localStorage.getItem(this.storageKey) || "[]");
+      resolve(users);
     });
   }
 
   async addItem(data) {
     return new Promise((resolve, reject) => {
-      const userTransaction = this.db.transaction("users", "readwrite");
-      const userObjectStore = userTransaction.objectStore("users");
-      const addRequest = userObjectStore.add(data);
-      addRequest.onsuccess = function () {
+      try {
+        const users = JSON.parse(localStorage.getItem(this.storageKey) || "[]");
+        // Check if user with same ID exists
+        const existingIndex = users.findIndex(u => u.userid === data.userid);
+        if (existingIndex !== -1) {
+          reject(new Error("User ID already exists"));
+          return;
+        }
+        users.push(data);
+        localStorage.setItem(this.storageKey, JSON.stringify(users));
         resolve();
-      };
-      addRequest.onerror = (e) => {
+      } catch (e) {
         reject(e);
-      };
+      }
     });
   }
 
   async removeItem(id) {
     return new Promise((resolve, reject) => {
-      const request = this.db
-        .transaction("users", "readwrite")
-        .objectStore("users")
-        .delete(Number(id));
-      request.onsuccess = () => {
-        resolve();
-      };
+      const users = JSON.parse(localStorage.getItem(this.storageKey) || "[]");
+      const filteredUsers = users.filter(u => u.userid !== Number(id));
+      localStorage.setItem(this.storageKey, JSON.stringify(filteredUsers));
+      resolve();
     });
   }
 }
@@ -78,8 +59,18 @@ async function submitDetail(e) {
   document.getElementById("user_detail").reset();
 }
 
-function renderHtml(data) {
-  document.getElementById("user_data").innerHTML = data
+function renderHtml(data, filterText = "") {
+  // Filter data based on search text
+  const filteredData = filterText
+    ? data.filter(
+        (user) =>
+          String(user.userid).includes(filterText) ||
+          user.name.toLowerCase().includes(filterText.toLowerCase()) ||
+          user.email.toLowerCase().includes(filterText.toLowerCase())
+      )
+    : data;
+
+  document.getElementById("user_data").innerHTML = filteredData
     .map(
       (user) => `<tr>
       <td>${user.userid}</td> 
@@ -94,7 +85,8 @@ function renderHtml(data) {
     el.addEventListener("click", async () => {
       await database.removeItem(Number(el.dataset.id));
       let users = await database.viewAllUsers();
-      renderHtml(users);
+      const currentFilter = document.getElementById("filter_input").value;
+      renderHtml(users, currentFilter);
     })
   );
 }
@@ -109,3 +101,10 @@ database
   });
 
 document.getElementById("user_detail").addEventListener("submit", submitDetail);
+
+// Add filter functionality
+document.getElementById("filter_input").addEventListener("input", async (e) => {
+  const filterText = e.target.value;
+  const users = await database.viewAllUsers();
+  renderHtml(users, filterText);
+});
