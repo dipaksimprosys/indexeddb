@@ -20,10 +20,13 @@ class DatabaseHandler {
         // this.userTransaction = this.db.transaction("users", "readwrite");
         // this.userObjectStore = this.userTransaction.objectStore("users");
 
-        // Sync IndexedDB data to LocalStorage on database open
-        await this.syncToLocalStorage();
-
-        resolve(event.target.result);
+        try {
+          // Sync IndexedDB data to LocalStorage on database open
+          await this.syncToLocalStorage();
+          resolve(event.target.result);
+        } catch (error) {
+          reject(error);
+        }
       };
       request.onupgradeneeded = (event) => {
         this.db = event.target.result;
@@ -38,10 +41,14 @@ class DatabaseHandler {
 
   async viewAllUsers() {
     return new Promise((resolve, reject) => {
-      const userTransaction = this.db.transaction("users", "readwrite");
+      const userTransaction = this.db.transaction("users", "readonly");
       const userObjectStore = userTransaction.objectStore("users");
-      userObjectStore.getAll().onsuccess = function (event) {
+      const getAllRequest = userObjectStore.getAll();
+      getAllRequest.onsuccess = function (event) {
         resolve(event.target.result);
+      };
+      getAllRequest.onerror = function (event) {
+        reject(event.target.error);
       };
     });
   }
