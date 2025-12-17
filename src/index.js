@@ -1,5 +1,7 @@
 class DatabaseHandler {
-  constructor() {} 
+  constructor() {
+    this.localStorageKey = "users_data";
+  } 
 
   async openDatabase(databaseName) {
     return new Promise((resolve, reject) => {
@@ -17,6 +19,9 @@ class DatabaseHandler {
         this.db = event.target.result;
         // this.userTransaction = this.db.transaction("users", "readwrite");
         // this.userObjectStore = this.userTransaction.objectStore("users");
+
+        // Sync IndexedDB data to LocalStorage on database open
+        this.syncToLocalStorage();
 
         resolve(event.target.result);
       };
@@ -41,12 +46,19 @@ class DatabaseHandler {
     });
   }
 
+  async syncToLocalStorage() {
+    const users = await this.viewAllUsers();
+    localStorage.setItem(this.localStorageKey, JSON.stringify(users));
+  }
+
   async addItem(data) {
     return new Promise((resolve, reject) => {
       const userTransaction = this.db.transaction("users", "readwrite");
       const userObjectStore = userTransaction.objectStore("users");
       const addRequest = userObjectStore.add(data);
-      addRequest.onsuccess = function () {
+      addRequest.onsuccess = async () => {
+        // Sync to LocalStorage after adding to IndexedDB
+        await this.syncToLocalStorage();
         resolve();
       };
       addRequest.onerror = (e) => {
@@ -61,7 +73,9 @@ class DatabaseHandler {
         .transaction("users", "readwrite")
         .objectStore("users")
         .delete(Number(id));
-      request.onsuccess = () => {
+      request.onsuccess = async () => {
+        // Sync to LocalStorage after removing from IndexedDB
+        await this.syncToLocalStorage();
         resolve();
       };
     });
