@@ -1,5 +1,7 @@
 class DatabaseHandler {
-  constructor() {} 
+  constructor() {
+    this.localStorageKey = "users_data";
+  } 
 
   async openDatabase(databaseName) {
     return new Promise((resolve, reject) => {
@@ -13,12 +15,18 @@ class DatabaseHandler {
       request.onerror = function (e) {
         reject();
       };
-      request.onsuccess = (event) => {
+      request.onsuccess = async (event) => {
         this.db = event.target.result;
         // this.userTransaction = this.db.transaction("users", "readwrite");
         // this.userObjectStore = this.userTransaction.objectStore("users");
 
-        resolve(event.target.result);
+        try {
+          // Sync IndexedDB data to LocalStorage on database open
+          await this.syncToLocalStorage();
+          resolve(event.target.result);
+        } catch (error) {
+          reject(error);
+        }
       };
       request.onupgradeneeded = (event) => {
         this.db = event.target.result;
@@ -33,12 +41,26 @@ class DatabaseHandler {
 
   async viewAllUsers() {
     return new Promise((resolve, reject) => {
-      const userTransaction = this.db.transaction("users", "readwrite");
+      const userTransaction = this.db.transaction("users", "readonly");
       const userObjectStore = userTransaction.objectStore("users");
-      userObjectStore.getAll().onsuccess = function (event) {
+      const getAllRequest = userObjectStore.getAll();
+      getAllRequest.onsuccess = function (event) {
         resolve(event.target.result);
       };
+      getAllRequest.onerror = function (event) {
+        reject(event.target.error);
+      };
     });
+  }
+
+  async syncToLocalStorage() {
+    try {
+      const users = await this.viewAllUsers();
+      localStorage.setItem(this.localStorageKey, JSON.stringify(users));
+    } catch (error) {
+      console.error("Failed to sync to LocalStorage:", error);
+      throw error;
+    }
   }
 
   async addItem(data) {
@@ -46,8 +68,14 @@ class DatabaseHandler {
       const userTransaction = this.db.transaction("users", "readwrite");
       const userObjectStore = userTransaction.objectStore("users");
       const addRequest = userObjectStore.add(data);
-      addRequest.onsuccess = function () {
-        resolve();
+      addRequest.onsuccess = async () => {
+        try {
+          // Sync to LocalStorage after adding to IndexedDB
+          await this.syncToLocalStorage();
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
       };
       addRequest.onerror = (e) => {
         reject(e);
@@ -61,8 +89,14 @@ class DatabaseHandler {
         .transaction("users", "readwrite")
         .objectStore("users")
         .delete(Number(id));
-      request.onsuccess = () => {
-        resolve();
+      request.onsuccess = async () => {
+        try {
+          // Sync to LocalStorage after removing from IndexedDB
+          await this.syncToLocalStorage();
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
       };
     });
   }
