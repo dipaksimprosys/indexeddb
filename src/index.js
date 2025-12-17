@@ -15,13 +15,13 @@ class DatabaseHandler {
       request.onerror = function (e) {
         reject();
       };
-      request.onsuccess = (event) => {
+      request.onsuccess = async (event) => {
         this.db = event.target.result;
         // this.userTransaction = this.db.transaction("users", "readwrite");
         // this.userObjectStore = this.userTransaction.objectStore("users");
 
         // Sync IndexedDB data to LocalStorage on database open
-        this.syncToLocalStorage();
+        await this.syncToLocalStorage();
 
         resolve(event.target.result);
       };
@@ -47,8 +47,13 @@ class DatabaseHandler {
   }
 
   async syncToLocalStorage() {
-    const users = await this.viewAllUsers();
-    localStorage.setItem(this.localStorageKey, JSON.stringify(users));
+    try {
+      const users = await this.viewAllUsers();
+      localStorage.setItem(this.localStorageKey, JSON.stringify(users));
+    } catch (error) {
+      console.error("Failed to sync to LocalStorage:", error);
+      throw error;
+    }
   }
 
   async addItem(data) {
@@ -57,9 +62,13 @@ class DatabaseHandler {
       const userObjectStore = userTransaction.objectStore("users");
       const addRequest = userObjectStore.add(data);
       addRequest.onsuccess = async () => {
-        // Sync to LocalStorage after adding to IndexedDB
-        await this.syncToLocalStorage();
-        resolve();
+        try {
+          // Sync to LocalStorage after adding to IndexedDB
+          await this.syncToLocalStorage();
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
       };
       addRequest.onerror = (e) => {
         reject(e);
@@ -74,9 +83,13 @@ class DatabaseHandler {
         .objectStore("users")
         .delete(Number(id));
       request.onsuccess = async () => {
-        // Sync to LocalStorage after removing from IndexedDB
-        await this.syncToLocalStorage();
-        resolve();
+        try {
+          // Sync to LocalStorage after removing from IndexedDB
+          await this.syncToLocalStorage();
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
       };
     });
   }
